@@ -301,7 +301,7 @@ adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ 
             _ -> [ Group n a ]
         -- Otherwise, the current group isn't affected at all.
         -- Note: n < i  ==>  0 < i - n
-      | otherwise = go (i-n) xs
+      | otherwise = Group n a : go (i-n) xs
     go _ [] = []
 
 ------------------------------------------------------------------

@@ -27,8 +27,6 @@ module Data.GroupedList
   , buildGroup
   , groupElement
   , groupedGroups
-    -- * Bind
-  , groupedBind
     ) where
 
 import Prelude hiding
@@ -171,13 +169,6 @@ concat = foldMap id
 --   in a grouped list, then concat the results.
 concatMap :: Eq b => Grouped a -> (a -> Grouped b) -> Grouped b
 concatMap gx f = concat $ map f gx
-
--- | This function is just a proof of the fact that 'Grouped'
---   forms a 'Monad' when the universe of types is restricted to those
---   that are instance of 'Eq'. It is a equivalent to 'concatMap'.
-groupedBind :: Eq b => Grouped a -> (a -> Grouped b) -> Grouped b
-{-# INLINE groupedBind #-}
-groupedBind = concatMap
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------

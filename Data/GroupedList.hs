@@ -6,7 +6,6 @@ module Data.GroupedList
     Grouped
     -- * Builders
   , point
-  , concat
   , concatMap
   , replicate
   , fromGroup
@@ -16,12 +15,13 @@ module Data.GroupedList
   , adjust2
     -- * Mapping
   , map
-  , map2
     -- * Filtering
   , partition
   , filter
     -- * Sorting
   , sort
+    -- * List conversion
+  , fromList
     -- * Groups
   , Group
   , buildGroup
@@ -33,12 +33,12 @@ import Prelude hiding
   (concat, concatMap, replicate, filter, map)
 import qualified Prelude as Prelude
 import Data.Pointed
-import Data.Foldable (toList)
+import Data.Foldable (toList, fold)
 import Data.List (group, foldl')
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
-import Control.Arrow ((***))
 import Data.Monoid ((<>))
+import Control.DeepSeq (NFData (..))
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -95,6 +95,9 @@ instance Monad Group where
   return = pure
   (>>=) = groupBind
 
+instance NFData a => NFData (Group a) where
+  rnf (Group _ a) = rnf a
+
 ------------------------------------------------------------------
 ------------------------------------------------------------------
 -- GROUPED
@@ -144,11 +147,6 @@ map f (Grouped gs) = Grouped $
       in  (uncurry (S.|>)) $ foldl go (S.empty, fmap f g) xs
     _ -> S.empty
 
-map2 :: Eq b => (a -> b) -> Grouped a -> Grouped b
-map2 f (Grouped gs) = foldr go mempty gs
-  where
-    go g r = fromGroup (fmap f g) <> r
-
 instance Foldable Grouped where
   foldMap f (Grouped gs) = foldMap (foldMap f) gs
   length (Grouped gs) = foldl' (+) 0 $ fmap length gs
@@ -157,18 +155,17 @@ instance Foldable Grouped where
 instance Show a => Show (Grouped a) where
   show = show . toList
 
+instance NFData a => NFData (Grouped a) where
+  rnf (Grouped gs) = rnf gs
+
 ------------------------------------------------------------------
 ------------------------------------------------------------------
 -- Monad instance (almost)
 
--- | Concatenation of grouped lists.
-concat :: Eq a => Grouped (Grouped a) -> Grouped a
-concat = foldMap id
-
 -- | Map a function that produces a grouped list for each element
 --   in a grouped list, then concat the results.
 concatMap :: Eq b => Grouped a -> (a -> Grouped b) -> Grouped b
-concatMap gx f = concat $ map f gx
+concatMap gx f = fold $ map f gx
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -226,12 +223,12 @@ index (Grouped gs) k = if k < 0 then Nothing else go 0 $ toList gs
     go _ [] = Nothing
 
 -- expansion/contraction version
-adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust f k = foldMap point . S.adjust f k . S.fromList . toList
+-- adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
+-- adjust f k = foldMap point . S.adjust f k . S.fromList . toList
 
 -- list version
-adjust2 :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ toList gs
+adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
+adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ toList gs
   where
     -- Pre-condition: 0 <= i
     go i (Group n a : xs)
@@ -303,6 +300,84 @@ adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ 
         -- Note: n < i  ==>  0 < i - n
       | otherwise = Group n a : go (i-n) xs
     go _ [] = []
+
+-- sequence version
+adjust2 :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
+adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
+  where
+    -- Pre-condition: 0 <= i
+    go i gseq =
+      case S.viewl gseq of
+        Group n a S.:< xs ->
+          case () of
+                -- This condition implies the change only affects current group.
+                -- Furthermore:
+                --
+                --   i <  n - 1  ==>  i + 1 < n
+                --   0 <= i      ==>  1 <= i + 1 < n  ==>  n > 1
+                --
+                --   Therefore, in this case we know n > 1.
+                --
+            _ | i < n - 1 ->
+                  let a' = f a
+                  in  if a == a'
+                         then gseq
+                         else if i == 0
+                                 then Group 1 a' S.<| Group (n-1) a S.<| xs
+                                      -- Note: i + 1 < n  ==>  0 < n - (i+1)
+                                 else Group i a S.<| Group 1 a' S.<| Group (n - (i+1)) a S.<| xs
+                -- This condition implies the change affects the current group, and can
+                -- potentially affect the next group.
+            _ | i == n - 1 ->
+                  let a' = f a
+                  in  if a == a'
+                         then gseq
+                         else if n == 1
+                                 then case S.viewl xs of
+                                        Group m b S.:< ys ->
+                                          if a' == b
+                                             then Group (m+1) b S.<| ys
+                                             else Group 1 a' S.<| xs
+                                        _ -> S.singleton $ Group 1 a'
+                                 -- In this branch, n > 1
+                                 else case S.viewl xs of
+                                        Group m b S.:< ys ->
+                                          if a' == b
+                                             then Group (n-1) a S.<| Group (m+1) b S.<| ys
+                                             else Group (n-1) a S.<| Group 1 a' S.<| xs
+                                        _ -> S.fromList [ Group (n-1) a , Group 1 a' ]
+                -- This condition implies the change affects the next group, and can
+                -- potentially affect the current group and the next to the next group.
+            _ | i == n ->
+                  case S.viewl xs of
+                    Group m b S.:< ys ->
+                      let b' = f b
+                      in  if b == b'
+                             then gseq
+                             else if m == 1
+                                     then if a == b'
+                                             then case S.viewl ys of
+                                                    Group l c S.:< zs ->
+                                                      if a == c
+                                                         then Group (n+1+l) a S.<| zs
+                                                         else Group (n+1) a S.<| ys
+                                                    _ -> S.singleton $ Group (n+1) a
+                                             else Group n a S.<|
+                                                    case S.viewl ys of
+                                                      Group l c S.:< zs ->
+                                                        if b' == c
+                                                           then Group (l+1) c S.<| zs
+                                                           else Group 1 b' S.<| ys
+                                                      _ -> S.singleton $ Group 1 b'
+                                     -- In this branch, m > 1
+                                     else if a == b'
+                                             then Group (n+1) a S.<| Group (m-1) b S.<| ys
+                                             else Group n a S.<| Group 1 b' S.<| Group (m-1) b S.<| ys
+                    _ -> S.singleton $ Group n a
+                -- Otherwise, the current group isn't affected at all.
+                -- Note: n < i  ==>  0 < i - n
+            _ | otherwise -> Group n a S.<| go (i-n) xs
+        _ -> S.empty
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------

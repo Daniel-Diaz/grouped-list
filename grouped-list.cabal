@@ -17,3 +17,13 @@ library
       base >= 4.8 && < 5
     , containers
     , pointed
+    , deepseq
+  ghc-options: -O2 -Wall
+
+benchmark grouped-list-bench
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Main.hs
+  ghc-options: -O2 -Wall
+  build-depends: base >= 4.8, grouped-list, criterion

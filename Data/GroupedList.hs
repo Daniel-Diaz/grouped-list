@@ -15,6 +15,9 @@ module Data.GroupedList
   , adjust2
     -- * Mapping
   , map
+    -- * Traversal
+  , traverseGrouped
+  , traverseGroupedByGroup
     -- * Filtering
   , partition
   , filter
@@ -92,7 +95,6 @@ instance Applicative Group where
   gf <*> gx = groupBind gx $ \x -> fmap ($x) gf
 
 instance Monad Group where
-  return = pure
   (>>=) = groupBind
 
 instance NFData a => NFData (Group a) where
@@ -222,13 +224,9 @@ index (Grouped gs) k = if k < 0 then Nothing else go 0 $ toList gs
               else go i' xs
     go _ [] = Nothing
 
--- expansion/contraction version
--- adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
--- adjust f k = foldMap point . S.adjust f k . S.fromList . toList
-
 -- list version
-adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ toList gs
+adjust2 :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
+adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ toList gs
   where
     -- Pre-condition: 0 <= i
     go i (Group n a : xs)
@@ -301,9 +299,9 @@ adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ t
       | otherwise = Group n a : go (i-n) xs
     go _ [] = []
 
--- sequence version
-adjust2 :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
+-- sequence version (default version at the moment)
+adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
+adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
   where
     -- Pre-condition: 0 <= i
     go i gseq =
@@ -381,12 +379,18 @@ adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
+-- Traversal
 
-traverseGrouped
-    :: (Applicative f, Eq b)
-    => (Int -> Group a -> f (Grouped b)) -- ^ Function to apply (with group starting index)
-    -> Grouped a -- ^ Grouped list
-    -> f (Grouped b)
-traverseGrouped f (Grouped gs) = snd $ foldl f' (0, pure mempty) gs
-  where
-    f' (i, fgd) g = (i+length g,) $ mappend <$> fgd <*> f i g
+traverseGrouped :: (Applicative f, Eq b) => (a -> f b) -> Grouped a -> f (Grouped b)
+traverseGrouped f = foldr (\x fxs -> mappend <$> (point <$> f x) <*> fxs) (pure mempty)
+
+traverseGroupedByGroup :: (Applicative f, Eq b) => (Group a -> f (Grouped b)) -> Grouped a -> f (Grouped b)
+traverseGroupedByGroup f (Grouped gs) = fold <$> traverse f gs
+
+traverseGroupedAccum ::
+  (Applicative f, Eq b)
+   => (acc -> Group a -> f (acc, Grouped b))
+   -> acc
+   -> Grouped a
+   -> f (Grouped b)
+traverseGroupedAccum = undefined -- TODO!

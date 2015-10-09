@@ -22,7 +22,7 @@ uniform = G.fromList $ replicate sampleSize 0
 
 increasing :: Grouped Int
 {-# NOINLINE increasing #-}
-increasing = G.fromList $ [1 .. sampleSize]
+increasing = G.fromList [1 .. sampleSize]
 
 halfuniform :: Grouped Int
 {-# NOINLINE halfuniform #-}
@@ -35,6 +35,10 @@ halfincreasing = G.fromList $ [1 .. sampleSize2] ++ replicate sampleSize2 0
 interleaved :: Grouped Int
 {-# NOINLINE interleaved #-}
 interleaved = G.fromList $ concat $ zipWith (\x y -> [x,y]) (replicate sampleSize2 0) [1 .. sampleSize2]
+
+halflist :: Grouped Int
+{-# NOINLINE halflist #-}
+halflist = G.fromList [1 .. sampleSize2]
 
 benchGroup :: String -> (Grouped Int -> Benchmarkable) -> Benchmark
 benchGroup n f = bgroup n $ fmap (\(bn,xs) -> bench bn $ f xs)
@@ -53,7 +57,5 @@ main = defaultMainWith (defaultConfig { reportFile = Just "grouped-list-bench.ht
   , benchGroup "adjust 0/2" $ nf $ G.adjust (+1) 0
   , benchGroup "adjust 1/2" $ nf $ G.adjust (+1) $ sampleSize2 + 1
   , benchGroup "adjust 2/2" $ nf $ G.adjust (+1) $ sampleSize - 1
-  , benchGroup "adjust2 0/2" $ nf $ G.adjust2 (+1) 0
-  , benchGroup "adjust2 1/2" $ nf $ G.adjust2 (+1) $ sampleSize2 + 1
-  , benchGroup "adjust2 2/2" $ nf $ G.adjust2 (+1) $ sampleSize - 1
+  , bench "mappend" $ nf (\xs -> mappend xs xs) halflist
     ]

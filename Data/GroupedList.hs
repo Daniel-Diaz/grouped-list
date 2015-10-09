@@ -1,6 +1,12 @@
 
 {-# LANGUAGE TupleSections #-}
 
+-- | Grouped lists are like lists, but internally they are represented
+--   as groups of consecutive elements.
+--
+--   For example, the list @[1,2,2,3,4,5,5,5]@ would be internally
+--   represented as @[[1],[2,2],[3],[4],[5,5,5]]@.
+--
 module Data.GroupedList
   ( -- * Type
     Grouped
@@ -12,12 +18,12 @@ module Data.GroupedList
     -- * Indexing
   , index
   , adjust
-  , adjust2
     -- * Mapping
   , map
     -- * Traversal
   , traverseGrouped
   , traverseGroupedByGroup
+  , traverseGroupedByGroupAccum
     -- * Filtering
   , partition
   , filter
@@ -36,12 +42,14 @@ import Prelude hiding
   (concat, concatMap, replicate, filter, map)
 import qualified Prelude as Prelude
 import Data.Pointed
-import Data.Foldable (toList, fold)
+import Data.Foldable (toList, fold, foldrM)
 import Data.List (group, foldl')
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
 import Data.Monoid ((<>))
 import Control.DeepSeq (NFData (..))
+import Control.Arrow (second)
+import qualified Data.Map.Strict as M
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -118,6 +126,7 @@ fromList = Grouped . S.fromList . fmap (\g -> Group (length g) $ head g) . group
 fromGroup :: Group a -> Grouped a
 fromGroup = Grouped . point
 
+-- | Groups of consecutive elements in a grouped list.
 groupedGroups :: Grouped a -> [Group a]
 groupedGroups (Grouped gs) = toList gs
 
@@ -137,6 +146,7 @@ instance Eq a => Monoid (Grouped a) where
           _ -> gs
       _ -> gs'
 
+-- | Apply a function to every element in a grouped list.
 map :: Eq b => (a -> b) -> Grouped a -> Grouped b
 map f (Grouped gs) = Grouped $
   case S.viewl gs of
@@ -188,7 +198,12 @@ replicate n x = Grouped $
 
 -- | Sort a grouped list.
 sort :: Ord a => Grouped a -> Grouped a
-sort (Grouped xs) = Grouped $ S.unstableSort xs
+sort (Grouped xs) = Grouped $ S.fromList $ fmap (uncurry $ flip Group)
+                            $ M.toAscList $ foldr go M.empty xs
+  where
+    f n (Just k) = Just $ k+n
+    f n _ = Just n
+    go (Group n a) = M.alter (f n) a
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -224,90 +239,17 @@ index (Grouped gs) k = if k < 0 then Nothing else go 0 $ toList gs
               else go i' xs
     go _ [] = Nothing
 
--- list version
-adjust2 :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust2 f k g@(Grouped gs) = if k < 0 then g else Grouped $ S.fromList $ go k $ toList gs
-  where
-    -- Pre-condition: 0 <= i
-    go i (Group n a : xs)
-        -- This condition implies the change only affects current group.
-        -- Furthermore:
-        --
-        --   i <  n - 1  ==>  i + 1 < n
-        --   0 <= i      ==>  1 <= i + 1 < n  ==>  n > 1
-        --
-        --   Therefore, in this case we know n > 1.
-        --
-      | i < n - 1 =
-          let a' = f a
-          in  if a == a'
-                 then Group n a : xs
-                 else if i == 0
-                         then Group 1 a' : Group (n-1) a : xs
-                              -- Note: i + 1 < n  ==>  0 < n - (i+1)
-                         else Group i a : Group 1 a' : Group (n - (i+1)) a : xs
-        -- This condition implies the change affects the current group, and can
-        -- potentially affect the next group.
-      | i == n - 1 =
-          let a' = f a
-          in  if a == a'
-                 then Group n a : xs
-                 else if n == 1
-                         then case xs of
-                                Group m b : ys ->
-                                  if a' == b
-                                     then Group (m+1) b : ys
-                                     else Group 1 a' : xs
-                                _ -> [ Group 1 a' ]
-                         -- In this branch, n > 1
-                         else case xs of
-                                Group m b : ys ->
-                                  if a' == b
-                                     then Group (n-1) a : Group (m+1) b : ys
-                                     else Group (n-1) a : Group 1 a' : xs
-                                _ -> [ Group (n-1) a , Group 1 a' ]
-        -- This condition implies the change affects the next group, and can
-        -- potentially affect the current group and the next to the next group.
-      | i == n =
-          case xs of
-            Group m b : ys ->
-              let b' = f b
-              in  if b == b'
-                     then Group n a : xs
-                     else if m == 1
-                             then if a == b'
-                                     then case ys of
-                                            Group l c : zs ->
-                                              if a == c
-                                                 then Group (n+1+l) a : zs
-                                                 else Group (n+1) a : ys
-                                            _ -> [ Group (n+1) a ]
-                                     else Group n a :
-                                            case ys of
-                                              Group l c : zs ->
-                                                if b' == c
-                                                   then Group (l+1) c : zs
-                                                   else Group 1 b' : ys
-                                              _ -> [ Group 1 b' ]
-                             -- In this branch, m > 1
-                             else if a == b'
-                                     then Group (n+1) a : Group (m-1) b : ys
-                                     else Group n a : Group 1 b' : Group (m-1) b : ys
-            _ -> [ Group n a ]
-        -- Otherwise, the current group isn't affected at all.
-        -- Note: n < i  ==>  0 < i - n
-      | otherwise = Group n a : go (i-n) xs
-    go _ [] = []
-
--- sequence version (default version at the moment)
+-- | Update the element at the given index. If the index is out of range,
+--   the original list is returned.
 adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
+adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go 0 k gs
   where
     -- Pre-condition: 0 <= i
-    go i gseq =
+    go npre i gseq =
       case S.viewl gseq of
         Group n a S.:< xs ->
-          case () of
+          let pre = S.take npre gs
+          in  case () of
                 -- This condition implies the change only affects current group.
                 -- Furthermore:
                 --
@@ -316,7 +258,7 @@ adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
                 --
                 --   Therefore, in this case we know n > 1.
                 --
-            _ | i < n - 1 ->
+            _ | i < n - 1 -> pre S.><
                   let a' = f a
                   in  if a == a'
                          then gseq
@@ -326,7 +268,7 @@ adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
                                  else Group i a S.<| Group 1 a' S.<| Group (n - (i+1)) a S.<| xs
                 -- This condition implies the change affects the current group, and can
                 -- potentially affect the next group.
-            _ | i == n - 1 ->
+            _ | i == n - 1 -> pre S.><
                   let a' = f a
                   in  if a == a'
                          then gseq
@@ -346,7 +288,7 @@ adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
                                         _ -> S.fromList [ Group (n-1) a , Group 1 a' ]
                 -- This condition implies the change affects the next group, and can
                 -- potentially affect the current group and the next to the next group.
-            _ | i == n ->
+            _ | i == n -> pre S.><
                   case S.viewl xs of
                     Group m b S.:< ys ->
                       let b' = f b
@@ -374,23 +316,33 @@ adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go k gs
                     _ -> S.singleton $ Group n a
                 -- Otherwise, the current group isn't affected at all.
                 -- Note: n < i  ==>  0 < i - n
-            _ | otherwise -> Group n a S.<| go (i-n) xs
+            _ | otherwise -> go (npre+1) (i-n) xs
         _ -> S.empty
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
 -- Traversal
 
+-- | Apply a function with results residing in an applicative functor to every
+--   element in a grouped list.
 traverseGrouped :: (Applicative f, Eq b) => (a -> f b) -> Grouped a -> f (Grouped b)
 traverseGrouped f = foldr (\x fxs -> mappend <$> (point <$> f x) <*> fxs) (pure mempty)
 
+-- | Similar to 'traverseGrouped', but instead of applying a function to every element
+--   of the list, it is applied to groups of consecutive elements. You might return more
+--   than one element, so the result is of type 'Grouped'. The results are then concatenated
+--   into a single value, embedded in the applicative functor.
 traverseGroupedByGroup :: (Applicative f, Eq b) => (Group a -> f (Grouped b)) -> Grouped a -> f (Grouped b)
 traverseGroupedByGroup f (Grouped gs) = fold <$> traverse f gs
 
-traverseGroupedAccum ::
-  (Applicative f, Eq b)
-   => (acc -> Group a -> f (acc, Grouped b))
-   -> acc
+-- | Like 'traverseGroupedByGroup', but carrying an accumulator.
+--   Note the 'Monad' constraint instead of 'Applicative'.
+traverseGroupedByGroupAccum ::
+  (Monad m, Eq b)
+   => (acc -> Group a -> m (acc, Grouped b))
+   -> acc -- ^ Initial value of the accumulator.
    -> Grouped a
-   -> f (Grouped b)
-traverseGroupedAccum = undefined -- TODO!
+   -> m (acc, Grouped b)
+traverseGroupedByGroupAccum f acc0 (Grouped gs) = foldrM go (acc0, mempty) gs
+  where
+    go g (acc, gd) = second (<> gd) <$> f acc g

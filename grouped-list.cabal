@@ -22,6 +22,8 @@ maintainer:          dhelta.diaz@gmail.com
 category:            Data
 build-type:          Simple
 cabal-version:       >=1.10
+bug-reports: https://github.com/Daniel-Diaz/grouped-list/issues
+homepage: https://github.com/Daniel-Diaz/grouped-list/blob/master/README.md
 
 library
   default-language: Haskell2010
@@ -40,3 +42,7 @@ benchmark grouped-list-bench
   main-is: Main.hs
   ghc-options: -O2 -Wall
   build-depends: base >= 4.8, grouped-list, criterion
+
+source-repository head
+  type: git
+  location: https://github.com/Daniel-Diaz/grouped-list.git

@@ -11,6 +11,7 @@ module Data.GroupedList
   ( -- * Type
     Grouped
     -- * Builders
+  , empty
   , point
   , concatMap
   , replicate
@@ -116,6 +117,10 @@ instance NFData a => NFData (Group a) where
 --   behave well in the abundance of sublists that have all their
 --   elements equal.
 newtype Grouped a = Grouped (Seq (Group a)) deriving Eq
+
+-- | Grouped list with no elements.
+empty :: Grouped a
+empty = Grouped S.empty
 
 -- | Build a grouped list from a regular list. It doesn't work if
 --   the input list is infinite.

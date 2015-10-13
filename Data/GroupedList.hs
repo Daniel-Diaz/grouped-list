@@ -19,6 +19,7 @@ module Data.GroupedList
     -- * Indexing
   , index
   , adjust
+  , adjustM
     -- * Mapping
   , map
     -- * Traversal
@@ -51,6 +52,7 @@ import Data.Monoid ((<>))
 import Control.DeepSeq (NFData (..))
 import Control.Arrow (second)
 import qualified Data.Map.Strict as M
+import Data.Functor.Identity (Identity (..))
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -247,7 +249,10 @@ index (Grouped gs) k = if k < 0 then Nothing else go 0 $ toList gs
 -- | Update the element at the given index. If the index is out of range,
 --   the original list is returned.
 adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
-adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go 0 k gs
+adjust f i g = runIdentity $ adjustM (Identity . f) i g
+
+adjustM :: (Monad m, Eq a) => (a -> m a) -> Int -> Grouped a -> m (Grouped a)
+adjustM f k g@(Grouped gs) = if k < 0 then pure g else Grouped <$> go 0 k gs
   where
     -- Pre-condition: 0 <= i
     go npre i gseq =
@@ -263,66 +268,69 @@ adjust f k g@(Grouped gs) = if k < 0 then g else Grouped $ go 0 k gs
                 --
                 --   Therefore, in this case we know n > 1.
                 --
-            _ | i < n - 1 -> pre S.><
-                  let a' = f a
-                  in  if a == a'
-                         then gseq
-                         else if i == 0
-                                 then Group 1 a' S.<| Group (n-1) a S.<| xs
-                                      -- Note: i + 1 < n  ==>  0 < n - (i+1)
-                                 else Group i a S.<| Group 1 a' S.<| Group (n - (i+1)) a S.<| xs
+            _ | i < n - 1 -> fmap (pre S.><) $ do
+                  a' <- f a
+                  pure $
+                    if a == a'
+                       then gseq
+                       else if i == 0
+                               then Group 1 a' S.<| Group (n-1) a S.<| xs
+                                    -- Note: i + 1 < n  ==>  0 < n - (i+1)
+                               else Group i a S.<| Group 1 a' S.<| Group (n - (i+1)) a S.<| xs
                 -- This condition implies the change affects the current group, and can
                 -- potentially affect the next group.
-            _ | i == n - 1 -> pre S.><
-                  let a' = f a
-                  in  if a == a'
-                         then gseq
-                         else if n == 1
-                                 then case S.viewl xs of
-                                        Group m b S.:< ys ->
-                                          if a' == b
-                                             then Group (m+1) b S.<| ys
-                                             else Group 1 a' S.<| xs
-                                        _ -> S.singleton $ Group 1 a'
-                                 -- In this branch, n > 1
-                                 else case S.viewl xs of
-                                        Group m b S.:< ys ->
-                                          if a' == b
-                                             then Group (n-1) a S.<| Group (m+1) b S.<| ys
-                                             else Group (n-1) a S.<| Group 1 a' S.<| xs
-                                        _ -> S.fromList [ Group (n-1) a , Group 1 a' ]
+            _ | i == n - 1 -> fmap (pre S.><) $ do
+                  a' <- f a
+                  pure $
+                    if a == a'
+                       then gseq
+                       else if n == 1
+                               then case S.viewl xs of
+                                      Group m b S.:< ys ->
+                                        if a' == b
+                                           then Group (m+1) b S.<| ys
+                                           else Group 1 a' S.<| xs
+                                      _ -> S.singleton $ Group 1 a'
+                               -- In this branch, n > 1
+                               else case S.viewl xs of
+                                      Group m b S.:< ys ->
+                                        if a' == b
+                                           then Group (n-1) a S.<| Group (m+1) b S.<| ys
+                                           else Group (n-1) a S.<| Group 1 a' S.<| xs
+                                      _ -> S.fromList [ Group (n-1) a , Group 1 a' ]
                 -- This condition implies the change affects the next group, and can
                 -- potentially affect the current group and the next to the next group.
-            _ | i == n -> pre S.><
+            _ | i == n -> fmap (pre S.><) $
                   case S.viewl xs of
-                    Group m b S.:< ys ->
-                      let b' = f b
-                      in  if b == b'
-                             then gseq
-                             else if m == 1
-                                     then if a == b'
-                                             then case S.viewl ys of
+                    Group m b S.:< ys -> do
+                      b' <- f b
+                      pure $
+                        if b == b'
+                           then gseq
+                           else if m == 1
+                                   then if a == b'
+                                           then case S.viewl ys of
+                                                  Group l c S.:< zs ->
+                                                    if a == c
+                                                       then Group (n+1+l) a S.<| zs
+                                                       else Group (n+1) a S.<| ys
+                                                  _ -> S.singleton $ Group (n+1) a
+                                           else Group n a S.<|
+                                                  case S.viewl ys of
                                                     Group l c S.:< zs ->
-                                                      if a == c
-                                                         then Group (n+1+l) a S.<| zs
-                                                         else Group (n+1) a S.<| ys
-                                                    _ -> S.singleton $ Group (n+1) a
-                                             else Group n a S.<|
-                                                    case S.viewl ys of
-                                                      Group l c S.:< zs ->
-                                                        if b' == c
-                                                           then Group (l+1) c S.<| zs
-                                                           else Group 1 b' S.<| ys
-                                                      _ -> S.singleton $ Group 1 b'
-                                     -- In this branch, m > 1
-                                     else if a == b'
-                                             then Group (n+1) a S.<| Group (m-1) b S.<| ys
-                                             else Group n a S.<| Group 1 b' S.<| Group (m-1) b S.<| ys
-                    _ -> S.singleton $ Group n a
+                                                      if b' == c
+                                                         then Group (l+1) c S.<| zs
+                                                         else Group 1 b' S.<| ys
+                                                    _ -> S.singleton $ Group 1 b'
+                                   -- In this branch, m > 1
+                                   else if a == b'
+                                           then Group (n+1) a S.<| Group (m-1) b S.<| ys
+                                           else Group n a S.<| Group 1 b' S.<| Group (m-1) b S.<| ys
+                    _ -> pure $ S.singleton $ Group n a
                 -- Otherwise, the current group isn't affected at all.
                 -- Note: n < i  ==>  0 < i - n
             _ | otherwise -> go (npre+1) (i-n) xs
-        _ -> S.empty
+        _ -> pure S.empty
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------

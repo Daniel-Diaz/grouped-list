@@ -20,6 +20,9 @@ module Data.GroupedList
   , index
   , adjust
   , adjustM
+    -- * Sublists
+  , take
+  , drop
     -- * Mapping
   , map
     -- * Traversal
@@ -41,7 +44,9 @@ module Data.GroupedList
     ) where
 
 import Prelude hiding
-  (concat, concatMap, replicate, filter, map)
+  ( concat, concatMap, replicate, filter, map
+  , take, drop
+    )
 import qualified Prelude as Prelude
 import Data.Pointed
 import Data.Foldable (toList, fold, foldrM)
@@ -331,6 +336,36 @@ adjustM f k g@(Grouped gs) = if k < 0 then pure g else Grouped <$> go 0 k gs
                 -- Note: n < i  ==>  0 < i - n
             _ | otherwise -> go (npre+1) (i-n) xs
         _ -> pure S.empty
+
+------------------------------------------------------------------
+------------------------------------------------------------------
+-- Sublists
+
+-- | Take the given number of elements from the left end of the
+--   list.
+take :: Int -> Grouped a -> Grouped a
+take n (Grouped gs) = Grouped $ if n <= 0 then S.empty else go 0 n gs
+  where
+    go npre k xs =
+      case S.viewl xs of
+        Group q x S.:< ys ->
+          if k <= q
+             then S.take npre gs S.|> Group k x
+             else go (npre+1) (k-q) ys -- k - q > 0
+        _ -> gs
+
+-- | Discard the given number of elements from the left end of
+--   the list.
+drop :: Int -> Grouped a -> Grouped a
+drop n g@(Grouped gs) = if n <= 0 then g else Grouped $ go n gs
+  where
+    go k xs =
+      case S.viewl xs of
+        Group q x S.:< ys ->
+          if k < q
+             then Group (q - k) x S.<| ys
+             else go (k - q) ys
+        _ -> S.empty
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------

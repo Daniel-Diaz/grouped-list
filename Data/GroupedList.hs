@@ -1,11 +1,12 @@
 
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections, TypeFamilies #-}
 
 -- | Grouped lists are like lists, but internally they are represented
 --   as groups of consecutive elements.
 --
 --   For example, the list @[1,2,2,3,4,5,5,5]@ would be internally
---   represented as @[[1],[2,2],[3],[4],[5,5,5]]@.
+--   represented as @[[1],[2,2],[3],[4],[5,5,5]]@. Use 'groupedGroups'
+--   to see this.
 --
 module Data.GroupedList
   ( -- * Type
@@ -58,6 +59,7 @@ import Control.DeepSeq (NFData (..))
 import Control.Arrow (second)
 import qualified Data.Map.Strict as M
 import Data.Functor.Identity (Identity (..))
+import qualified GHC.Exts as GHC
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -129,10 +131,17 @@ newtype Grouped a = Grouped (Seq (Group a)) deriving Eq
 empty :: Grouped a
 empty = Grouped S.empty
 
+-- | Method 'fromList' doesn't work for infinite lists.
+--   A grouped list cannot be infinite.
+instance Eq a => GHC.IsList (Grouped a) where
+  type (Item (Grouped a)) = a
+  fromList = Grouped . S.fromList . fmap (\g -> Group (length g) $ head g) . group
+  toList = toList
+
 -- | Build a grouped list from a regular list. It doesn't work if
---   the input list is infinite.
+--   the input list is infinite. This is just an alias for 'GHC.fromList'.
 fromList :: Eq a => [a] -> Grouped a
-fromList = Grouped . S.fromList . fmap (\g -> Group (length g) $ head g) . group
+fromList = GHC.fromList
 
 -- | Build a grouped list from a group (see 'Group').
 fromGroup :: Group a -> Grouped a

@@ -47,3 +47,10 @@ benchmark grouped-list-bench
 source-repository head
   type: git
   location: https://github.com/Daniel-Diaz/grouped-list.git
+
+test-suite grouped-list-examples
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: examples.hs
+  build-depends: base >= 4.8, grouped-list

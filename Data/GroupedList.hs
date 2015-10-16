@@ -14,6 +14,7 @@ module Data.GroupedList
     -- * Builders
   , empty
   , point
+    -- | Use 'point' to create a 'Grouped' list with a single element.
   , concatMap
   , replicate
   , fromGroup
@@ -36,6 +37,7 @@ module Data.GroupedList
     -- * Sorting
   , sort
     -- * List conversion
+    -- | For to-list conversion use 'toList'.
   , fromList
     -- * Groups
   , Group

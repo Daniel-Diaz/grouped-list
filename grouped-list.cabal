@@ -54,3 +54,13 @@ test-suite grouped-list-examples
   hs-source-dirs: test
   main-is: examples.hs
   build-depends: base >= 4.8, grouped-list
+
+test-suite grouped-list-properties
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: properties.hs
+  ghc-options: -Wall
+  build-depends:
+      base >= 4.8, grouped-list
+    , QuickCheck, tasty, tasty-quickcheck

@@ -139,7 +139,7 @@ instance Eq a => GHC.IsList (Grouped a) where
   toList = toList
 
 -- | Build a grouped list from a regular list. It doesn't work if
---   the input list is infinite. This is just an alias for 'GHC.fromList'.
+--   the input list is infinite. This is just an alias of 'GHC.fromList'.
 fromList :: Eq a => [a] -> Grouped a
 fromList = GHC.fromList
 

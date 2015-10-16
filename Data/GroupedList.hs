@@ -240,7 +240,7 @@ partition f (Grouped xs) = foldr go (mempty, mempty) xs
          then (fromGroup g <> gtrue,gfalse)
          else (gtrue,fromGroup g <> gfalse)
 
--- | Filter a grouped list by keeping only those that match a given condition.
+-- | Filter a grouped list by keeping only those elements that match a given condition.
 filter :: Eq a => (a -> Bool) -> Grouped a -> Grouped a
 filter f = fst . partition f
 
@@ -265,6 +265,7 @@ index (Grouped gs) k = if k < 0 then Nothing else go 0 $ toList gs
 adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
 adjust f i g = runIdentity $ adjustM (Identity . f) i g
 
+-- | Just like 'adjust', but the function returns in a 'Monad'.
 adjustM :: (Monad m, Eq a) => (a -> m a) -> Int -> Grouped a -> m (Grouped a)
 adjustM f k g@(Grouped gs) = if k < 0 then pure g else Grouped <$> go 0 k gs
   where

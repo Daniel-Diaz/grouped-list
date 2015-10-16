@@ -52,7 +52,6 @@ import Prelude hiding
     )
 import qualified Prelude as Prelude
 import Data.Pointed
-import Data.Copointed
 import Data.Foldable (toList, fold, foldrM)
 import Data.List (group, foldl')
 import Data.Sequence (Seq)
@@ -92,9 +91,6 @@ instance Ord a => Ord (Group a) where
 
 instance Pointed Group where
   point = Group 1
-
-instance Copointed Group where
-  copoint = groupElement
 
 instance Functor Group where
   fmap f (Group n a) = Group n (f a)

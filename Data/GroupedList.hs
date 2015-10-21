@@ -68,6 +68,16 @@ import qualified GHC.Exts as GHC
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
+-- COMPATIBILITY
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative (Applicative (..))
+import Data.Foldable (Foldable (..))
+import Data.Monoid (Monoid (..))
+#endif
+
+------------------------------------------------------------------
+------------------------------------------------------------------
 -- GROUP
 
 -- | A 'Group' is a non-empty finite list that contains the same element

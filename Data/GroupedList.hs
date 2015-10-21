@@ -1,5 +1,5 @@
 
-{-# LANGUAGE TupleSections, TypeFamilies #-}
+{-# LANGUAGE TupleSections, TypeFamilies, CPP #-}
 
 -- | Grouped lists are like lists, but internally they are represented
 --   as groups of consecutive elements.

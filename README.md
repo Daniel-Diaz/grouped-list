@@ -1,3 +1,4 @@
+
 # grouped-list
 
 Welcome to the `grouped-list` repository.
@@ -21,3 +22,7 @@ repetitions perform much better, and memory
 usage is reduced. However, this type is suboptimal
 for lists that do not have many consecutive
 repetitions. We are trying to ameliorate this.
+
+# Automatic build
+
+[![Build Status](https://travis-ci.org/Daniel-Diaz/grouped-list.svg?branch=master)](https://travis-ci.org/Daniel-Diaz/grouped-list)

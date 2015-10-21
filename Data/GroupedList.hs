@@ -18,6 +18,8 @@ module Data.GroupedList
   , concatMap
   , replicate
   , fromGroup
+    -- * Info
+  , length
     -- * Indexing
   , index
   , adjust
@@ -43,6 +45,7 @@ module Data.GroupedList
   , Group
   , buildGroup
   , groupElement
+  , groupSize
     -- ** In grouped lists
   , groupedGroups
   , firstGroup
@@ -51,11 +54,11 @@ module Data.GroupedList
 
 import Prelude hiding
   ( concat, concatMap, replicate, filter, map
-  , take, drop, foldl, foldr
+  , take, drop, foldl, foldr, length
     )
 import qualified Prelude as Prelude
 import Data.Pointed
-import Data.Foldable (toList, fold, foldrM, foldr, foldl)
+import Data.Foldable (Foldable (..), toList, foldrM)
 import Data.List (group)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
@@ -75,8 +78,6 @@ import Control.Applicative (Applicative (..), (<$>))
 import Data.Foldable (Foldable (foldMap))
 import Data.Traversable (traverse)
 import Data.Monoid (Monoid (..))
-#else
-import Data.List (foldl')
 #endif
 
 ------------------------------------------------------------------
@@ -95,6 +96,10 @@ buildGroup n x = if n <= 0 then Nothing else Just (Group n x)
 -- | Get the element of a group.
 groupElement :: Group a -> a
 groupElement (Group _ a) = a
+
+-- | Size of a group.
+groupSize :: Group a -> Int
+groupSize (Group n _) = n
 
 -- | A group is larger than other if its constituent element is
 --   larger. If they are equal, the group with more elements is
@@ -225,6 +230,10 @@ instance Foldable Grouped where
 #if MIN_VERSION_base(4,8,0)
   length (Grouped gs) = foldl' (+) 0 $ fmap length gs
   null (Grouped gs) = null gs
+#else
+
+length :: Grouped a -> Int
+length (Grouped gs) = foldl' (+) 0 $ fmap groupLength gs
 #endif
 
 instance Show a => Show (Grouped a) where

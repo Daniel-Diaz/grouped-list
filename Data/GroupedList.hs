@@ -233,7 +233,7 @@ instance Foldable Grouped where
 #else
 
 length :: Grouped a -> Int
-length (Grouped gs) = foldl' (+) 0 $ fmap groupLength gs
+length (Grouped gs) = foldl' (+) 0 $ fmap groupSize gs
 #endif
 
 instance Show a => Show (Grouped a) where

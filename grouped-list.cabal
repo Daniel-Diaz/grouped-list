@@ -42,7 +42,7 @@ benchmark grouped-list-bench
   hs-source-dirs: bench
   main-is: Main.hs
   ghc-options: -O2 -Wall
-  build-depends: base >= 4.8, grouped-list, criterion
+  build-depends: base == 4.*, grouped-list, criterion
 
 source-repository head
   type: git
@@ -53,7 +53,7 @@ test-suite grouped-list-examples
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: examples.hs
-  build-depends: base >= 4.8, grouped-list
+  build-depends: base == 4.*, grouped-list
 
 test-suite grouped-list-properties
   default-language: Haskell2010
@@ -62,5 +62,5 @@ test-suite grouped-list-properties
   main-is: properties.hs
   ghc-options: -Wall
   build-depends:
-      base >= 4.8, grouped-list
+      base == 4.*, grouped-list
     , QuickCheck, tasty, tasty-quickcheck

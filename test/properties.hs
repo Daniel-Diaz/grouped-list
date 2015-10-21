@@ -10,6 +10,10 @@ import Test.Tasty
 import qualified Test.Tasty.QuickCheck as QC
 import Test.QuickCheck (Arbitrary (..), Testable, choose)
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+#endif
+
 -- | A short alias for 'QC.testProperty'.
 prop :: Testable a => TestName -> a -> TestTree
 prop = QC.testProperty

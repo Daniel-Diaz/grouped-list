@@ -43,7 +43,10 @@ module Data.GroupedList
   , Group
   , buildGroup
   , groupElement
+    -- ** In grouped lists
   , groupedGroups
+  , firstGroup
+  , lastGroup
     ) where
 
 import Prelude hiding
@@ -153,6 +156,22 @@ fromGroup = Grouped . point
 -- | Groups of consecutive elements in a grouped list.
 groupedGroups :: Grouped a -> [Group a]
 groupedGroups (Grouped gs) = toList gs
+
+-- | Get the first group (if the list is not empty) and
+--   the rest of the list.
+firstGroup :: Grouped a -> Maybe (Group a, Grouped a)
+firstGroup (Grouped gs) =
+  case S.viewl gs of
+    g S.:< hs -> Just (g, Grouped hs)
+    _ -> Nothing
+
+-- | Get the last group (if the list is not empty) and
+--   the rest of the list.
+lastGroup :: Grouped a -> Maybe (Grouped a, Group a)
+lastGroup (Grouped gs) =
+  case S.viewr gs of
+    hs S.:> g -> Just (Grouped hs,g)
+    _ -> Nothing
 
 instance Pointed Grouped where
   point = fromGroup . point

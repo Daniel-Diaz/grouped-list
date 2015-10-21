@@ -51,7 +51,7 @@ module Data.GroupedList
 
 import Prelude hiding
   ( concat, concatMap, replicate, filter, map
-  , take, drop
+  , take, drop, foldl
     )
 import qualified Prelude as Prelude
 import Data.Pointed
@@ -72,7 +72,7 @@ import qualified GHC.Exts as GHC
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative (..), (<$>))
-import Data.Foldable (Foldable (foldMap))
+import Data.Foldable (Foldable (foldMap, foldl))
 import Data.Traversable (traverse)
 import Data.Monoid (Monoid (..))
 #endif
@@ -303,7 +303,11 @@ adjust :: Eq a => (a -> a) -> Int -> Grouped a -> Grouped a
 adjust f i g = runIdentity $ adjustM (Identity . f) i g
 
 -- | Just like 'adjust', but the function returns in a 'Monad'.
+#if MIN_VERSION_base(4,8,0)
 adjustM :: (Monad m, Eq a) => (a -> m a) -> Int -> Grouped a -> m (Grouped a)
+#else
+adjustM :: (Applicative m, Monad m, Eq a) => (a -> m a) -> Int -> Grouped a -> m (Grouped a)
+#endif
 adjustM f k g@(Grouped gs) = if k < 0 then pure g else Grouped <$> go 0 k gs
   where
     -- Pre-condition: 0 <= i

@@ -51,7 +51,7 @@ module Data.GroupedList
 
 import Prelude hiding
   ( concat, concatMap, replicate, filter, map
-  , take, drop, foldl
+  , take, drop, foldl, foldr
     )
 import qualified Prelude as Prelude
 import Data.Pointed
@@ -72,7 +72,7 @@ import qualified GHC.Exts as GHC
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative (..), (<$>))
-import Data.Foldable (Foldable (foldMap, foldl))
+import Data.Foldable (Foldable (foldMap, foldl, foldr))
 import Data.Traversable (traverse)
 import Data.Monoid (Monoid (..))
 #endif
@@ -437,7 +437,11 @@ traverseGroupedByGroup f (Grouped gs) = fold <$> traverse f gs
 -- | Like 'traverseGroupedByGroup', but carrying an accumulator.
 --   Note the 'Monad' constraint instead of 'Applicative'.
 traverseGroupedByGroupAccum ::
+#if MIN_VERSION_base(4,8,0)
   (Monad m, Eq b)
+#else
+  (Applicative m, Monad m, Eq b)
+#endif
    => (acc -> Group a -> m (acc, Grouped b))
    -> acc -- ^ Initial value of the accumulator.
    -> Grouped a

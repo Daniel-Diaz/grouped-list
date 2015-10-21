@@ -72,7 +72,7 @@ import qualified GHC.Exts as GHC
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative (..))
-import Data.Foldable (Foldable (..))
+import Data.Foldable (Foldable (foldMap))
 import Data.Monoid (Monoid (..))
 #endif
 
@@ -110,9 +110,11 @@ instance Functor Group where
 
 instance Foldable Group where
   foldMap f (Group n a) = mconcat $ Prelude.replicate n $ f a
+#if MIN_VERSION_base(4,8,0)
   elem x (Group _ a) = x == a
   null _ = False
   length (Group n _) = n
+#endif
 
 instance Show a => Show (Group a) where
   show = show . toList

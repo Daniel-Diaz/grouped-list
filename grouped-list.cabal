@@ -26,6 +26,10 @@ bug-reports: https://github.com/Daniel-Diaz/grouped-list/issues
 homepage: https://github.com/Daniel-Diaz/grouped-list/blob/master/README.md
 extra-source-files: README.md, CHANGELOG.md
 
+flag compat
+  description: compile in compatibility mode
+  default: False
+
 library
   default-language: Haskell2010
   exposed-modules: Data.GroupedList
@@ -35,8 +39,8 @@ library
     , pointed
     , deepseq
   ghc-options: -O2 -Wall
-  -- Compatibility for Identity in versions of base previous to 4.8.0.0
-  if impl(ghc < 4.8.0.0)
+  -- compatibility
+  if flag(compat)
     build-depends: transformers
 
 benchmark grouped-list-bench

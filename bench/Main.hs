@@ -58,4 +58,5 @@ main = defaultMainWith (defaultConfig { reportFile = Just "grouped-list-bench.ht
   , benchGroup "adjust 1/2" $ nf $ G.adjust (+1) $ sampleSize2 + 1
   , benchGroup "adjust 2/2" $ nf $ G.adjust (+1) $ sampleSize - 1
   , bench "mappend" $ nf (\xs -> mappend xs xs) halflist
+  , benchGroup "sort" $ nf G.sort
     ]

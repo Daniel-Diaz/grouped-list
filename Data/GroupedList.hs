@@ -55,8 +55,8 @@ import Prelude hiding
     )
 import qualified Prelude as Prelude
 import Data.Pointed
-import Data.Foldable (toList, fold, foldrM)
-import Data.List (group, foldl')
+import Data.Foldable (toList, fold, foldrM, foldr, foldl)
+import Data.List (group)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
 import Data.Monoid ((<>))
@@ -72,9 +72,11 @@ import qualified GHC.Exts as GHC
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative (..), (<$>))
-import Data.Foldable (Foldable (foldMap, foldl, foldr))
+import Data.Foldable (Foldable (foldMap))
 import Data.Traversable (traverse)
 import Data.Monoid (Monoid (..))
+#else
+import Data.List (foldl')
 #endif
 
 ------------------------------------------------------------------
@@ -131,6 +133,9 @@ instance Applicative Group where
   gf <*> gx = groupBind gx $ \x -> fmap ($x) gf
 
 instance Monad Group where
+#if !MIN_VERSION_base(4,8,0)
+  return = pure
+#endif
   (>>=) = groupBind
 
 instance NFData a => NFData (Group a) where

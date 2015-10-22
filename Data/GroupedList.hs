@@ -75,7 +75,6 @@ import qualified GHC.Exts as GHC
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative (..), (<$>))
-import Data.Foldable (Foldable (foldMap))
 import Data.Traversable (traverse)
 import Data.Monoid (Monoid (..))
 #endif

@@ -163,7 +163,7 @@ empty = Grouped S.empty
 --   A grouped list cannot be infinite.
 instance Eq a => GHC.IsList (Grouped a) where
   type (Item (Grouped a)) = a
-  fromList = Grouped . S.fromList . fmap (\g -> Group (length g) $ head g) . group
+  fromList = Grouped . S.fromList . fmap (\g -> Group (Prelude.length g) $ head g) . group
   toList = toList
 
 -- | Build a grouped list from a regular list. It doesn't work if

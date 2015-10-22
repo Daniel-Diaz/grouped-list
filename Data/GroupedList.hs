@@ -158,18 +158,19 @@ newtype Grouped a = Grouped (Seq (Group a)) deriving Eq
 empty :: Grouped a
 empty = Grouped S.empty
 
+#if MIN_VERSION_base(4,7,0)
 -- | Method 'fromList' doesn't work for infinite lists.
 --   A grouped list cannot be infinite.
 instance Eq a => GHC.IsList (Grouped a) where
   type (Item (Grouped a)) = a
-  fromList = Grouped . S.fromList . fmap (\g -> Group (Prelude.length g) $ head g) . group
+  fromList = fromList
   toList = toList
+#endif
 
 -- | Build a grouped list from a regular list. It doesn't work if
---   the input list is infinite. This is just a specialized version
---   of 'GHC.fromList'.
+--   the input list is infinite.
 fromList :: Eq a => [a] -> Grouped a
-fromList = GHC.fromList
+fromList = Grouped . S.fromList . fmap (\g -> Group (Prelude.length g) $ head g) . group
 
 -- | Build a grouped list from a group (see 'Group').
 fromGroup :: Group a -> Grouped a

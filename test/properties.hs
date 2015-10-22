@@ -34,7 +34,7 @@ main = defaultMain $ testGroup "Properties"
   , prop "right mempty" $ \(G xs) -> xs <> GL.empty == xs
   , prop "mappend" $ \(G xs) (G ys) (G zs) -> (xs <> ys) <> zs == xs <> (ys <> zs)
   , prop "index" $ \(G xs) ->
-      let n = length xs
+      let n = GL.length xs
       in  (\i -> 
              let r = GL.index xs i
              in  if i <= n - 1
@@ -42,7 +42,7 @@ main = defaultMain $ testGroup "Properties"
                     else r == Nothing
             ) <$> choose (0,2*n)
   , prop "split and concat" $ \(G xs) ->
-      let n = length xs
+      let n = GL.length xs
       in  (\i -> GL.take i xs <> GL.drop i xs == xs) <$> choose (0,n)
   , prop "map id" $ \(G xs) -> GL.map id xs == xs
   , prop "map (+1) . map (+1) = map (+2)" $

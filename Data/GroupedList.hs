@@ -67,11 +67,14 @@ import Control.DeepSeq (NFData (..))
 import Control.Arrow (second)
 import qualified Data.Map.Strict as M
 import Data.Functor.Identity (Identity (..))
-import qualified GHC.Exts as GHC
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
 -- COMPATIBILITY
+
+#if MIN_VERSION_base(4,7,0)
+import qualified GHC.Exts as GHC
+#endif
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative (..), (<$>))

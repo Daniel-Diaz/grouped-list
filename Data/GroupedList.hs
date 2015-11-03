@@ -482,10 +482,9 @@ zipWith f (Grouped xs) (Grouped ys) = fold $ fmap fromGroup $ go xs ys
           case S.viewl gs' of
             Group m y S.:< hs' ->
               let z = f x y
-              in  Group (min n m) z :
-                    case () of
-                      _ | n == m -> go hs hs'
-                      _ | n  > m -> go (Group (n-m) x S.<| hs) hs'
-                      _ -> go hs (Group (m-n) y S.<| hs')
+              in  case () of
+                    _ | n == m -> Group n z : go hs hs'
+                    _ | n  > m -> Group m z : go (Group (n-m) x S.<| hs) hs'
+                    _ -> Group n z : go hs (Group (m-n) y S.<| hs')
             _ -> []
         _ -> []

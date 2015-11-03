@@ -38,6 +38,8 @@ module Data.GroupedList
   , filter
     -- * Sorting
   , sort
+    -- * Zipping
+  , zipWith
     -- * List conversion
     -- | For to-list conversion use 'toList'.
   , fromList
@@ -54,7 +56,7 @@ module Data.GroupedList
 
 import Prelude hiding
   ( concat, concatMap, replicate, filter, map
-  , take, drop, foldl, foldr, length
+  , take, drop, foldl, foldr, length, zipWith
     )
 import qualified Prelude as Prelude
 import Data.Pointed
@@ -466,3 +468,24 @@ traverseGroupedByGroupAccum ::
 traverseGroupedByGroupAccum f acc0 (Grouped gs) = foldrM go (acc0, mempty) gs
   where
     go g (acc, gd) = second (<> gd) <$> f acc g
+
+------------------------------------------------------------------
+------------------------------------------------------------------
+-- Zipping
+
+zipWith :: Eq c => (a -> b -> c) -> Grouped a -> Grouped b -> Grouped c
+zipWith f (Grouped xs) (Grouped ys) = fold $ fmap fromGroup $ go xs ys
+  where
+    go gs gs' =
+      case S.viewl gs of
+        Group n x S.:< hs ->
+          case S.viewl gs' of
+            Group m y S.:< hs' ->
+              let z = f x y
+              in  Group (min n m) z :
+                    case () of
+                      _ | n == m -> go hs hs'
+                      _ | n  > m -> go (Group (n-m) x S.<| hs) hs'
+                      _ -> go hs (Group (m-n) y S.<| hs')
+            _ -> []
+        _ -> []

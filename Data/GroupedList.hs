@@ -475,6 +475,8 @@ traverseGroupedByGroupAccum f acc0 (Grouped gs) = foldrM go (acc0, mempty) gs
 ------------------------------------------------------------------
 -- Zipping
 
+-- | Combine two lists using a combining function. If one list is longer,
+--   remaining elements are discarded.
 zipWith :: Eq c => (a -> b -> c) -> Grouped a -> Grouped b -> Grouped c
 zipWith f (Grouped xs) (Grouped ys) = fold $ fmap fromGroup $ go xs ys
   where
@@ -491,5 +493,7 @@ zipWith f (Grouped xs) (Grouped ys) = fold $ fmap fromGroup $ go xs ys
             _ -> []
         _ -> []
 
+-- | Combine two lists in a single list of pairs. If one list is longer,
+--   remaining elements are discarded.
 zip :: (Eq a, Eq b) => Grouped a -> Grouped b -> Grouped (a,b)
 zip = zipWith (,)

@@ -40,6 +40,7 @@ module Data.GroupedList
   , sort
     -- * Zipping
   , zipWith
+  , zip
     -- * List conversion
     -- | For to-list conversion use 'toList'.
   , fromList
@@ -57,6 +58,7 @@ module Data.GroupedList
 import Prelude hiding
   ( concat, concatMap, replicate, filter, map
   , take, drop, foldl, foldr, length, zipWith
+  , zip
     )
 import qualified Prelude as Prelude
 import Data.Pointed
@@ -488,3 +490,6 @@ zipWith f (Grouped xs) (Grouped ys) = fold $ fmap fromGroup $ go xs ys
                     _ -> Group n z : go hs (Group (m-n) y S.<| hs')
             _ -> []
         _ -> []
+
+zip :: (Eq a, Eq b) => Grouped a -> Grouped b -> Grouped (a,b)
+zip = zipWith (,)

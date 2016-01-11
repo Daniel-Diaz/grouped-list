@@ -62,7 +62,7 @@ import Prelude hiding
     )
 import qualified Prelude as Prelude
 import Data.Pointed
-import Data.Foldable (Foldable (..), toList, foldrM)
+import Data.Foldable (Foldable (..), toList)
 import Data.List (group)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
@@ -71,6 +71,7 @@ import Control.DeepSeq (NFData (..))
 import Control.Arrow (second)
 import qualified Data.Map.Strict as M
 import Data.Functor.Identity (Identity (..))
+import Control.Monad (foldM)
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -467,9 +468,9 @@ traverseGroupedByGroupAccum ::
    -> acc -- ^ Initial value of the accumulator.
    -> Grouped a
    -> m (acc, Grouped b)
-traverseGroupedByGroupAccum f acc0 (Grouped gs) = foldrM go (acc0, mempty) gs
+traverseGroupedByGroupAccum f acc0 (Grouped gs) = foldM go (acc0, mempty) gs
   where
-    go g (acc, gd) = second (<> gd) <$> f acc g
+    go (acc, gd) g = second (gd <>) <$> f acc g
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------

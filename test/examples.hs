@@ -7,6 +7,7 @@ import System.Exit (exitFailure)
 import Data.GroupedList (Grouped)
 import qualified Data.GroupedList as GL
 import Control.Monad (unless)
+import Data.Functor.Identity
 
 (=:) :: (Show a, Eq a) => a -> a -> IO ()
 x =: y = unless (x == y) $ do
@@ -59,3 +60,5 @@ main = do
     =: [1,2,3,3]
   GL.zipWith (+) [1,2,1,1] [2,1,1,2]
     =: [3,3,2,3]
+  runIdentity (fmap snd $ GL.traverseGroupedByGroupAccum (\acc g -> Identity (acc+1, GL.map (+acc) $ GL.fromGroup g)) 0 [1,2,3,3,4])
+    =: [1,3,5,5,7]

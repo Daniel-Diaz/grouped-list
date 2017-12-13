@@ -33,6 +33,7 @@ main = defaultMain $ testGroup "Properties"
   [ prop "left mempty" $ \(G xs) -> GL.empty <> xs == xs
   , prop "right mempty" $ \(G xs) -> xs <> GL.empty == xs
   , prop "mappend" $ \(G xs) (G ys) (G zs) -> (xs <> ys) <> zs == xs <> (ys <> zs)
+  , prop "mappend length" $ \(G xs) (G ys) -> length xs + length ys == length (xs <> ys)
   , prop "index" $ \(G xs) ->
       let n = GL.length xs
       in  (\i -> 

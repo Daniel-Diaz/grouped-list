@@ -236,7 +236,7 @@ map f (Grouped gs) = Grouped $
 instance Foldable Grouped where
   foldMap f (Grouped gs) = foldMap (foldMap f) gs
 #if MIN_VERSION_base(4,8,0)
-  length (Grouped gs) = foldl' (+) 0 $ fmap length gs
+  length (Grouped gs) = foldl' (\s g -> s + length g) 0 gs
   null (Grouped gs) = null gs
 #else
 

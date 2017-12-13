@@ -62,3 +62,5 @@ main = do
     =: [3,3,2,3]
   runIdentity (fmap snd $ GL.traverseGroupedByGroupAccum (\acc g -> Identity (acc+1, GL.map (+acc) $ GL.fromGroup g)) 0 [1,2,3,3,4])
     =: [1,3,5,5,7]
+  length ([1,2,2,3,4,4,4,5] :: Grouped Int)
+    =: 8

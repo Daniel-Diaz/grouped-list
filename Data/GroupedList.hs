@@ -157,8 +157,8 @@ instance NFData a => NFData (Group a) where
 -- GROUPED
 
 -- | Type of grouped lists. Grouped lists are finite lists that
---   behave well in the abundance of sublists that have all their
---   elements equal.
+--   perform better than regular lists in the abundance of sublists
+--   that have all their elements equal.
 newtype Grouped a = Grouped (Seq (Group a)) deriving Eq
 
 -- | Grouped list with no elements.

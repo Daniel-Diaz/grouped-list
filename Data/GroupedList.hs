@@ -63,7 +63,6 @@ import Prelude hiding
 import qualified Prelude as Prelude
 import Data.Pointed
 import Data.Foldable (Foldable (..), toList)
-import Data.List (group)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
 import Data.Monoid ((<>))
@@ -175,10 +174,22 @@ instance Eq a => GHC.IsList (Grouped a) where
   toList = toList
 #endif
 
+headGroup :: Eq a => [a] -> Maybe (Group a, [a])
+headGroup [] = Nothing
+headGroup (a:as) = Just (Group n a, r)
+  where
+    (n,r) = count 1 as
+    count acc [] = (acc,[])
+    count acc l@(x:xs) =
+      if a == x
+         then let acc' = acc + 1
+              in  seq acc' $ count acc' xs
+         else (acc, l)
+
 -- | Build a grouped list from a regular list. It doesn't work if
 --   the input list is infinite.
 fromList :: Eq a => [a] -> Grouped a
-fromList = Grouped . S.fromList . fmap (\g -> Group (Prelude.length g) $ head g) . group
+fromList = Grouped . S.unfoldr headGroup
 
 -- | Build a grouped list from a group (see 'Group').
 fromGroup :: Group a -> Grouped a

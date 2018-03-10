@@ -11,7 +11,7 @@ import Criterion.Main
 import Criterion.Types (reportFile)
 
 sampleSize :: Int
-sampleSize = 1000
+sampleSize = 2000
 
 sampleSize2 :: Int
 sampleSize2 = div sampleSize 2
@@ -59,4 +59,6 @@ main = defaultMainWith (defaultConfig { reportFile = Just "grouped-list-bench.ht
   , benchGroup "adjust 2/2" $ nf $ G.adjust (+1) $ sampleSize - 1
   , bench "mappend" $ nf (\xs -> mappend xs xs) halflist
   , benchGroup "sort" $ nf G.sort
+  , bench "fromList/uniform" $ nf G.fromList (replicate sampleSize (0 :: Int))
+  , bench "fromList/increasing" $ nf G.fromList [1..sampleSize]
     ]

@@ -50,4 +50,6 @@ main = defaultMain $ testGroup "Properties"
       \(G xs) -> GL.map (+1) (GL.map (+1) xs) == GL.map (+2) xs
   , prop "'map (const i)' generates at most one group" $
       \(G xs) i -> length (GL.groupedGroups $ GL.map (const i) xs :: [GL.Group Int]) <= 1
+  , prop "fromList . toList = id" $ \(G xs) -> GL.fromList (toList xs) == xs
+  , prop "toList . fromList = id" $ \xs -> toList (GL.fromList xs) == (xs :: [Int])
     ]

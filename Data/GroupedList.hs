@@ -70,6 +70,7 @@ import Control.DeepSeq (NFData (..))
 import Control.Arrow (second)
 import qualified Data.Map.Strict as M
 import Data.Functor.Identity (Identity (..))
+import Control.Applicative (liftA2)
 import Control.Monad (foldM)
 
 ------------------------------------------------------------------
@@ -458,7 +459,7 @@ drop n g@(Grouped gs) = if n <= 0 then g else Grouped $ go n gs
 -- | Apply a function with results residing in an applicative functor to every
 --   element in a grouped list.
 traverseGrouped :: (Applicative f, Eq b) => (a -> f b) -> Grouped a -> f (Grouped b)
-traverseGrouped f = foldr (\x fxs -> mappend <$> (point <$> f x) <*> fxs) (pure mempty)
+traverseGrouped f = foldr (\x fxs -> liftA2 mappend (point <$> f x) fxs) (pure mempty)
 
 -- | Similar to 'traverseGrouped', but instead of applying a function to every element
 --   of the list, it is applied to groups of consecutive elements. You might return more

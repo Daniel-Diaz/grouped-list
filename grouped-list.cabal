@@ -32,6 +32,7 @@ library
     , containers
     , pointed
     , deepseq
+    , binary
   ghc-options: -O2 -Wall
   -- compatibility
   if impl(ghc < 7.10)

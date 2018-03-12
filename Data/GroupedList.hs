@@ -72,6 +72,7 @@ import qualified Data.Map.Strict as M
 import Data.Functor.Identity (Identity (..))
 import Control.Applicative (liftA2)
 import Control.Monad (foldM)
+import Data.Binary (Binary (..))
 
 ------------------------------------------------------------------
 ------------------------------------------------------------------
@@ -94,6 +95,10 @@ import Data.Monoid (Monoid (..))
 -- | A 'Group' is a non-empty finite list that contains the same element
 --   repeated a number of times.
 data Group a = Group {-# UNPACK #-} !Int a deriving Eq
+
+instance Binary a => Binary (Group a) where
+  put (Group n x) = put n *> put x
+  get = liftA2 Group get get
 
 -- | Build a group by repeating the given element a number of times.
 --   If the given number is less or equal to 0, 'Nothing' is returned.
@@ -174,6 +179,10 @@ instance Eq a => GHC.IsList (Grouped a) where
   fromList = fromList
   toList = toList
 #endif
+
+instance Binary a => Binary (Grouped a) where
+  put (Grouped xs) = put xs
+  get = Grouped <$> get
 
 headGroup :: Eq a => [a] -> Maybe (Group a, [a])
 headGroup [] = Nothing

@@ -1,5 +1,5 @@
 name:                grouped-list
-version:             0.2.2.0
+version:             0.2.2.1
 synopsis:            Grouped lists. Equal consecutive elements are grouped.
 description:
   Grouped lists work like regular lists, except for two conditions:
@@ -28,7 +28,7 @@ library
   default-language: Haskell2010
   exposed-modules: Data.GroupedList
   build-depends:
-      base >= 4.8 && < 4.11
+      base >= 4.8 && < 4.13
     , containers
     , pointed
     , deepseq

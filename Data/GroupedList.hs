@@ -228,9 +228,17 @@ lastGroup (Grouped gs) =
 instance Pointed Grouped where
   point = fromGroup . point
 
+#if MIN_VERSION_base(4,11,0)
+instance Eq a => Monoid (Grouped a) where
+  mempty = Grouped S.empty
+
+instance Eq a => Semigroup (Grouped a) where
+  Grouped gs <> Grouped gs' = Grouped $
+#else
 instance Eq a => Monoid (Grouped a) where
   mempty = Grouped S.empty
   mappend (Grouped gs) (Grouped gs') = Grouped $
+#endif
     case S.viewr gs of
       gsl S.:> Group n l ->
         case S.viewl gs' of

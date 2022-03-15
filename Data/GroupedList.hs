@@ -20,6 +20,7 @@ module Data.GroupedList
   , fromGroup
     -- * Info
   , length
+  , groupCount
     -- * Indexing
   , index
   , adjust
@@ -170,6 +171,11 @@ newtype Grouped a = Grouped (Seq (Group a)) deriving Eq
 -- | Grouped list with no elements.
 empty :: Grouped a
 empty = Grouped S.empty
+
+-- | Return the number of groups in a grouped list. See 'Group'.
+--   It should give the same result as @length . groupedGroups@.
+groupCount :: Grouped a -> Int
+groupCount (Grouped xs) = length xs
 
 #if MIN_VERSION_base(4,7,0)
 -- | Method 'fromList' doesn't work for infinite lists.
